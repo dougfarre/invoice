@@ -1,0 +1,189 @@
+#!/usr/bin/env ruby
+
+require 'tesseract'
+require 'csv'
+require 'docsplit'
+
+input_pdf_name = ARGV[0]
+
+Docsplit.extract_images('test/'+ input_pdf_name +'.pdf', :format => [:png], :output => 'images/', :density => 500)
+
+e = Tesseract::Engine.new {|e|
+  e.language  = :eng
+  e.blacklist = '|'
+}
+
+l = 0
+
+image_dir = 'images'
+images_count = Dir[File.join(image_dir, '**', '*')].count { |file| File.file?(file) }
+image_num = 0
+
+CSV.open("csv/1.csv", "wb") do |csv|
+	
+	images_count.times {
+	image_num += 1
+	
+	z = 0
+	p = 0
+	o = []
+	q = []
+	
+
+	e.each_line_for('images/' + input_pdf_name + '_' + image_num.to_s + '.png') do |l|
+	
+		if l.text.to_s.include? "Description Quantity Units Amount"
+			p = 1		
+		else
+			if l.text.to_s.include? "Invoice number:"
+				if z == 0 and image_num == 1
+					z = 1	
+					r = l.text.to_s.split(':')
+					csv << ["Invoice Number:", r[r.size - 1].strip]
+				end
+			end
+			if l.text.to_s.include? "Issue date:" and p == 0
+				r = l.text.to_s.split(':')
+				csv << ["Invoice Date:", r[r.size - 1].strip]
+				month = r[r.size - 1].strip.split(' ')
+				csv << ["Description", "Google Ad X Bill for " + month[0]]
+				
+			end
+
+			if l.text.to_s.include? "Bill to:" or l.text.to_s.include? "Subtotal:"  or l.text.to_s.include? "For questions about this invoice please email"
+				p = 0			
+			end
+			
+			
+
+			if l.text.to_s.include? "Amount due in" and  p == 1
+				r = l.text.to_s.split(':')
+				csv << ["Amount Due:", r[r.size - 1].strip]
+				csv << []
+				p = 0
+			end
+		end			
+		if p == 1
+			o << l.text.to_s
+		end
+	end
+	
+	if image_num == 1
+		csv << ["IO", "Description", "Impression", "Price"]
+	end
+	
+	o.each_with_index do |k, index_outer|
+		
+			#csv << ["row", "of", "CSV", "data"]
+		if index_outer > 0
+		
+
+			m = []
+			a = []
+			b = []
+			k.split(' ').reverse.each do |j|
+				m << j
+			end
+			m.each_with_index do |i, index|
+				if (index == 0 or index == 1 or index == 2) and ( /\A[-+]?\d+\z/ === m[0].split('.')[1])
+					if m.size != 3 or index == 0
+						a << i
+					else
+						b << i
+					end
+				else
+					if !( /\A[-+]?\d+\z/ === m[0].split('.')[1]) and index == 0
+						a << i					 				
+					else
+						b << i
+					end
+				end
+				
+			end
+			
+			d = b.size - 1
+			c = ''
+			(b.size).times {
+				c = c + b[d] + ' '
+				d -= 1			
+			}	
+			g = []
+			
+			if c.include? "IO"
+				g = c.split('IO', 2)
+				g[1] = 'IO' + g[1]
+			elsif c.include? "SW"
+				g = c.split('SW', 2)
+				g[1] = 'SW' + g[1]
+			else
+				g << c
+			end
+
+			c = ['', '']
+			
+			
+
+			g.each_with_index do |h, index_inner|
+				if index_inner == 0
+					c[0] = h
+				else
+					c[1] += h
+					unless index_inner == (g.size - 1)
+						c[1] += ''
+					end
+				end
+				
+			end
+
+		
+			unless index_outer == 0
+				if a.size > 1
+					
+					a << c[0]
+					a << c[1].strip
+					q << [a[4], a[3], a[2], a[0]]
+
+				else
+					a << c[0]
+					a << c[1]		
+		
+					if a[1].include? "Invalid activity"			
+						q << ['', a[1], '', a[0]]
+					else
+						unless  ( /\A[-+]?\d+\z/ === a[0].split('.')[1])
+							# puts "a[non-numeric]: " + a.to_s
+							unless q[q.size - 1].nil?
+								if (a[2].include? "IO" or a[2].include? "SW")
+									q[q.size - 1][0] = q[q.size - 1][0] + a[2] + a[0]
+									q[q.size - 1][1] = q[q.size - 1][1] + a[1]
+								elsif (a[0].include? "IO" or a[0].include? "SW")
+									q[q.size - 1][0] = q[q.size - 1][0] + a[0]
+									q[q.size - 1][1] = q[q.size - 1][1] + a[1]
+								else 									
+									q[q.size - 1][0] = q[q.size - 1][0] + a[1] + a[0]
+									# q[q.size - 1][1] = q[q.size - 1][1] + a[]
+								end
+
+							end
+
+						else
+							q << ['', a[1], '', a[0]]	
+						end
+					end
+				end
+			end
+		end
+		
+		
+	end
+
+	q.each do |r|
+		csv << r
+	end
+	
+	}
+end
+dir_path = 'images/'
+Dir.foreach(dir_path) {|f| fn = File.join(dir_path, f); File.delete(fn) if f != '.' && f != '..'}
+
+

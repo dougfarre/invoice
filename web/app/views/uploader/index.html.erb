@@ -1,0 +1,52 @@
+<style>
+.alert.alert-error {
+	background-color: #ff9191;
+	width: 400px;
+	border: 1px solid #7d0000;
+}
+</style>
+
+<div style="width: 500px; height: 400px; margin-left: 20px; font-family: Verdana, Arial, Tahoma; font-size: 12px;">
+
+<% flash.each do |name, msg| %>
+   <%= content_tag(:div, msg, class: "alert alert-#{name}") %>
+<% end %>
+
+<h3>Welcome to PDF conversion tool</h3>
+	<br />
+	<%= form_tag({action: :upload}, multipart: true) do %>
+
+	Please select a PDF file to upload:
+	<br />
+	<br />
+	  <%= file_field_tag 'pdf_file', accept: 'application/pdf', required: true %>
+	<br />
+	<br />
+	<br />
+	Please select the type of PDF file:
+	<br />
+	<%= radio_button_tag(:file_type, "image") %>
+	<%= label_tag(:file_type_image, "Scanned Image") %>
+	<br />
+	<%= radio_button_tag(:file_type, "text") %>
+	<%= label_tag(:file_type_text, "Parseable PDF") %>
+	<br />
+	<%= radio_button_tag(:file_type, "auto", true) %>
+	<%= label_tag(:file_type_auto, "Allow app to decide") %>
+
+	<br />
+	<br />
+	<br />
+	If you would like to receive the file over an email address, please enter it below:
+	<br />
+	<%= email_field_tag(:to_email) %>
+	<br />
+	<br />
+	<br />
+	
+	  <%= submit_tag("Upload") %>
+	  <br />
+	  <br />
+	  <strong>Please note that after you hit upload button, the process may take up to a couple of minutes to complete.</strong>
+	<% end %>
+</div>

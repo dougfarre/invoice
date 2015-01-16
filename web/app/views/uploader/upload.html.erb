@@ -1,0 +1,11 @@
+<div style="width: 500px; margin: auto; font-family: Verdana, Arial, Tahoma; font-size: 12px;">
+File has been processed. 
+<% if @sent_through_email == false %>
+	 Please <%= link_to "click here", "/#{@filtered_file_name}.csv" %> to download.
+	<% else %>
+	You would receive an email at <%= @sent_through_email %> containing the processed file shortly.
+	<% end %>
+	<br />
+	<br />
+	<%= link_to "<<Back to upload page", "/uploader" %>
+</div>
